@@ -3,19 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>AMUK</title>
+<title>NADI FIGHTERS</title>
 <style>
 :root{color-scheme:dark;--bg:#14101f;--ink:#f4e9d0;--hot:#ffcf4a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:'Courier New',monospace;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:'Courier New',monospace;overflow:hidden;user-select:none;-webkit-user-select:none}
 #app{height:100%;display:flex;flex-direction:column}
 #stage{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
-#c{width:min(100%,calc((100dvh - 190px)*1.7778));aspect-ratio:16/9;image-rendering:pixelated;background:#000}
+#c{width:min(100%,calc((100dvh - 190px)*1.7778));aspect-ratio:16/9;image-rendering:pixelated;background:#000;touch-action:none}
 #pad{display:flex;gap:12px;padding:10px 12px 14px}
 .g{display:flex;gap:8px}
 .g:first-child{flex:2}.g:last-child{flex:3;display:grid;grid-template-columns:1fr 1fr}
 #pad button{flex:1;min-height:42px;font:700 14px 'Courier New',monospace;color:var(--ink);background:#2a2142;border:2px solid #5b4a8a;border-radius:10px;touch-action:none}
 #pad button.on{background:var(--hot);color:#14101f;border-color:var(--hot)}
-.ov{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;background:rgba(20,16,31,.93);text-align:center;overflow:auto}
+.ov{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;background:rgba(20,16,31,.93);text-align:center;overflow:auto;touch-action:pan-y}
 .ov.off{display:none}
 #end{background:rgba(20,16,31,.7)}
 h1{margin:0;font-size:28px;color:var(--hot)}
@@ -23,7 +23,7 @@ p{margin:0;font-size:14px;max-width:34ch;line-height:1.5}
 #cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(100%,340px)}
 .card{background:#231a3a;border:3px solid #3d2f63;border-radius:10px;padding:8px;color:var(--ink);font:inherit;cursor:pointer;touch-action:manipulation}
 .card.sel{border-color:var(--hot);background:#3a2b5c}
-.card canvas{width:88px;height:96px;image-rendering:pixelated}
+.card canvas{width:84px;height:114px;image-rendering:pixelated}
 .nm{margin-top:4px;font-weight:700;font-size:14px}.nm.sm{font-weight:400;font-size:11px;color:var(--hot)}
 .card small{display:block;font-size:11px;opacity:.8}
 .btn{font:700 18px 'Courier New',monospace;padding:12px 26px;background:var(--hot);color:#14101f;border:0;border-radius:8px;cursor:pointer;touch-action:manipulation}
@@ -47,19 +47,19 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 </div>
 <div id="intro" class="ov" tabindex="0" role="button" aria-label="Tekan untuk mula">
   <h1>NADI<br>FIGHTERS</h1>
-  <canvas id="ic" width="160" height="56"></canvas>
+  <canvas id="ic" width="160" height="90"></canvas>
   <div class="blink">TEKAN UNTUK MULA</div>
 </div>
 <div id="sel" class="ov off">
-  <h1>Pilih Pahlawan Andaa</h1>
+  <h1>Pilih Pahlawan Anda</h1>
   <div id="cards"></div>
   <button class="btn" id="go">Lawan!</button><button class="btn alt" id="mu">Bunyi: HIDUP</button>
-  <p>Papan kekunci: ← → gerak, ↑ lompat, J tumbuk, K tendang.</p>
+  <p>Papan kekunci: ← → gerak, ↑ lompat, J tumbuk, K tendang, L spesial.</p>
 </div>
 <div id="end" class="ov off">
   <h1 id="eh"></h1><p id="ep"></p>
   <button class="btn" id="again">Lawan lagi?</button>
-  <button class="btn alt" id="re">Pilih watak ke</button>
+  <button class="btn alt" id="re">Pilih watak lain</button>
 </div>
 <script>
 const $=id=>document.getElementById(id),cv=$('c'),g=cv.getContext('2d'),W=320,H=180,GY=152;
@@ -68,20 +68,11 @@ let AC,mute=false,bgm,proj=[],spTxt={l:0};
 /* BUNYI SENDIRI: letak data URI audio di sini, cth FILES.kena='data:audio/mpeg;base64,....'
    Kunci: lompat, ayun, kena, api, ko, mula, muzik (muzik = latar, berulang) */
 const FILES={};
-  const HARIMAU_IMG = new Image();
-HARIMAU_IMG.src = "harimau.png";
 
-const ADLI_IMG = new Image();
-ADLI_IMG.src = "adli.png";
-
-const ZAMBRI_IMG = new Image();
-ZAMBRI_IMG.src = "zambri.png";
-
-const RANDY_IMG = new Image();
-RANDY_IMG.src = "randy.png";
-
-const FRAME_W = 384;
-const FRAME_H = 512;
+/* SPRITE: fail PNG mesti dalam folder yang sama dengan HTML ini */
+const FRAME_W=384,FRAME_H=512;
+const mkImg=s=>{const i=new Image();i.onload=()=>drawCards();i.src=s;return i};
+const SPR={HARIMAU:mkImg('harimau.png'),ADLI:mkImg('adli.png'),ZAMBRI:mkImg('zambri.png'),RANDY:mkImg('randy.png')};
 
 function au(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume()}
 addEventListener('pointerdown',au);addEventListener('keydown',au);
@@ -90,76 +81,36 @@ function noise(d,v){if(!AC||mute)return;const n=AC.sampleRate*d|0,b=AC.createBuf
 const SFX={lompat:()=>tone(300,600,.12,'square',.08),ayun:()=>tone(500,200,.08,'sawtooth',.05),kena:()=>{noise(.1,.25);tone(180,60,.12,'square',.15)},api:()=>tone(200,900,.35,'sawtooth',.1),ko:()=>tone(300,40,.6,'sawtooth',.15),mula:()=>tone(440,880,.2,'square',.1)};
 function snd(n){if(mute)return;if(FILES[n]){try{new Audio(FILES[n]).play().catch(()=>{})}catch(e){}return}if(SFX[n])SFX[n]()}
 function showSp(f){spTxt={t:f.c.sn,l:50,x:f.x,c:f.c.fc}}
-$('mu').onclick=()=>{mute=!mute;$('mu').textContent='Bunyi: '+(mute?'MATI':'HIDUP');if(mute&&bgm)bgm.pause()};
+$('mu').onclick=()=>{mute=!mute;$('mu').textContent='Bunyi: '+(mute?'MATI':'HIDUP');if(bgm){mute?bgm.pause():bgm.play().catch(()=>{})}};
 const CH=[
 {n:'HARIMAU',sn:'Cakar Api',fc:'#ff7a1a',s:'Kuat, lambat',sp:1.2,dm:1.3,hp:110,p:{sk:'#e0ac69',gi:'#e8731c',bt:'#3a1d0a',hr:'#1b1b1b',bd:'#1b1b1b'}},
 {n:'ADLI',sn:'Sayap Ribut',fc:'#5ab0ff',s:'Laju, ringan',sp:2,dm:.85,hp:90,p:{sk:'#f1c9a0',gi:'#2f6fe0',bt:'#f4f4f4',hr:'#d9d9d9',bd:'#ffd23f'}},
-{n:'Zambri',sn:'Nafas naga',fc:'#ff3b4a',s:'Seimbang',sp:1.6,dm:1,hp:100,p:{sk:'#c68642',gi:'#ececec',bt:'#c0172b',hr:'#111',bd:'#c0172b'}},
+{n:'ZAMBRI',sn:'Nafas Naga',fc:'#ff3b4a',s:'Seimbang',sp:1.6,dm:1,hp:100,p:{sk:'#c68642',gi:'#ececec',bt:'#c0172b',hr:'#111',bd:'#c0172b'}},
 {n:'RANDY',sn:'Kilat Hutan',fc:'#6bff9a',s:'Lincah, nipis',sp:2.3,dm:.75,hp:80,p:{sk:'#8d5524',gi:'#2fb36b',bt:'#14532d',hr:'#6b4520',bd:'#fff'}}];
 const ATK={s:{s:99,e:0,n:24,r:0,d:0,k:0},p:{s:4,e:8,n:15,r:24,d:6,k:2},k:{s:6,e:11,n:21,r:30,d:10,k:3.5}};
 let pick=2,scene='intro',P1,P2,keys={},parts=[],shake=0,timer=0,bannerT=0,fin=false,endT=0,bg;
 
 function mk(i,x,face,ai){const c=CH[i];return{c,x,y:GY,vy:0,face,hp:c.hp,mhp:c.hp,en:0,g:true,atk:null,at:0,done:false,hs:0,kb:0,t:0,ko:false,vxm:0,flash:0,ai:ai?{c:0}:null}}
 
-function drawF(c,f,x,y,face){
-
-let SPRITE = null;
-
-if(f.c.n==='HARIMAU') SPRITE = HARIMAU_IMG;
-if(f.c.n==='ADLI') SPRITE = ADLI_IMG;
-if(f.c.n==='Zambri') SPRITE = ZAMBRI_IMG;
-if(f.c.n==='RANDY') SPRITE = RANDY_IMG;
-
-if(SPRITE && SPRITE.complete){
-
-  let col=0;
-  let row=0;
-
-  if(f.atk===ATK.p){
-      col=0;
-      row=1;
-  }
-  else if(f.atk===ATK.k){
-      col=1;
-      row=1;
-  }
-  else if(f.atk===ATK.s){
-      col=2;
-      row=1;
-  }
-  else if(Math.abs(f.vxm)>0){
-      col=2+((f.t>>3)%2);
-      row=0;
-  }
-  else{
-      col=(f.t>>4)%2;
-      row=0;
-  }
-
+function drawF(c,f,x,y,face,sc=1){
+ const S=SPR[f.c.n.toUpperCase()];
+ if(S&&S.complete&&S.naturalWidth>0){
+  let col=0,row=0;
+  if(f.atk===ATK.p){col=0;row=1}
+  else if(f.atk===ATK.k){col=1;row=1}
+  else if(f.atk===ATK.s){col=2;row=1}
+  else if(Math.abs(f.vxm)>0){col=2+((f.t>>3)%2)}
+  else{col=(f.t>>4)%2}
+  const w=56*sc,h=72*sc;
   c.save();
-
-  if(face<0){
-      c.translate(x,0);
-      c.scale(-1,1);
-      x=0;
-  }
-
-  c.drawImage(
-      HARIMAU_IMG,
-      col * HARIMAU_FW,
-      row * HARIMAU_FH,
-      HARIMAU_FW,
-      HARIMAU_FH,
-      Math.round(x - 28),
-      Math.round(y - 54),
-      56,
-      72
-  );
-
+  c.translate(Math.round(x),Math.round(y));
+  if(face<0)c.scale(-1,1);
+  if(f.ko)c.rotate(-Math.PI/2*0.9); /* sementara, sampai ada frame KO */
+  c.drawImage(S,col*FRAME_W,row*FRAME_H,FRAME_W,FRAME_H,-w/2,-h+4*sc,w,h);
   c.restore();
   return;
  }
-
+ /* sandaran vektor jika gambar belum siap / tak jumpa */
  const p=f.c.p,t=f.t;
  const R=(px,py,w,h,col)=>{c.fillStyle=f.flash?'#fff':col;c.fillRect(Math.round(x+(face>0?px:-px-w)),Math.round(y+py),w,h)};
  if(f.ko){R(-14,-8,28,8,p.gi);R(-21,-9,8,8,p.sk);R(-22,-11,5,4,p.hr);R(14,-6,6,6,p.sk);return}
@@ -264,10 +215,10 @@ function render(){if(scene==='intro')drawIntro();
 }
 let introT=0;const ic=$('ic').getContext('2d');
 function drawIntro(){
- introT++;ic.clearRect(0,0,160,56);ic.fillStyle='#3a2634';ic.fillRect(0,52,160,4);
+ introT++;ic.clearRect(0,0,160,90);ic.fillStyle='#3a2634';ic.fillRect(0,86,160,4);
  const a=introT%120,b=(introT+60)%120,base={t:introT,hs:0,flash:0,at:0,g:true,ko:false,vxm:0};
- drawF(ic,{...base,c:CH[0],atk:a<15?ATK.p:null,at:a},48,52,1);
- drawF(ic,{...base,c:CH[1],atk:b<15?ATK.p:null,at:b},112,52,-1);
+ drawF(ic,{...base,c:CH[0],atk:a<15?ATK.p:null,at:a},48,86,1);
+ drawF(ic,{...base,c:CH[1],atk:b<15?ATK.p:null,at:b},112,86,-1);
 }
 function enter(){if(scene!=='intro')return;scene='sel';$('intro').classList.add('off');$('sel').classList.remove('off');snd('mula')}
 $('intro').onclick=enter;
@@ -277,14 +228,19 @@ requestAnimationFrame(frame);
 
 const cards=$('cards');
 function sync(){[...cards.children].forEach((b,i)=>b.classList.toggle('sel',i===pick))}
+function drawCards(){
+ [...cards.children].forEach((b,i)=>{
+  const k=b.querySelector('canvas').getContext('2d');
+  k.clearRect(0,0,56,76);
+  drawF(k,{c:CH[i],t:0,hs:0,flash:0,atk:null,at:0,g:true,ko:false,vxm:0},28,72,1);
+ });
+}
 CH.forEach((c,i)=>{
  const b=document.createElement('div');b.className='card';b.tabIndex=0;
- b.innerHTML='<canvas width="44" height="48"></canvas><div class="nm">'+c.n+'</div><div class="nm sm">'+c.sn+'</div><small>'+c.s+'</small>';
- const k=b.querySelector('canvas').getContext('2d');
- drawF(k,{c,t:0,hs:0,flash:0,atk:null,at:0,g:true,ko:false,vxm:0},22,44,1);
+ b.innerHTML='<canvas width="56" height="76"></canvas><div class="nm">'+c.n+'</div><div class="nm sm">'+c.sn+'</div><small>'+c.s+'</small>';
  b.onclick=()=>{pick=i;sync()};cards.appendChild(b);
 });
-sync();
+sync();drawCards();
 $('go').onclick=begin;$('again').onclick=begin;
 $('re').onclick=()=>{$('end').classList.add('off');$('sel').classList.remove('off');scene='sel'};
 
