@@ -68,6 +68,11 @@ let AC,mute=false,bgm,proj=[],spTxt={l:0};
 /* BUNYI SENDIRI: letak data URI audio di sini, cth FILES.kena='data:audio/mpeg;base64,....'
    Kunci: lompat, ayun, kena, api, ko, mula, muzik (muzik = latar, berulang) */
 const FILES={};
+  const HARIMAU_IMG = new Image();
+HARIMAU_IMG.src = "harimau.png";
+
+const HARIMAU_FW = 384;
+const HARIMAU_FH = 512;
 function au(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume()}
 addEventListener('pointerdown',au);addEventListener('keydown',au);
 function tone(a,b,d,ty,v){if(!AC||mute)return;const o=AC.createOscillator(),x=AC.createGain(),t=AC.currentTime;o.type=ty;o.frequency.setValueAtTime(a,t);o.frequency.exponentialRampToValueAtTime(b,t+d);x.gain.setValueAtTime(v,t);x.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(x);x.connect(AC.destination);o.start(t);o.stop(t+d)}
@@ -87,6 +92,57 @@ let pick=2,scene='intro',P1,P2,keys={},parts=[],shake=0,timer=0,bannerT=0,fin=fa
 function mk(i,x,face,ai){const c=CH[i];return{c,x,y:GY,vy:0,face,hp:c.hp,mhp:c.hp,en:0,g:true,atk:null,at:0,done:false,hs:0,kb:0,t:0,ko:false,vxm:0,flash:0,ai:ai?{c:0}:null}}
 
 function drawF(c,f,x,y,face){
+
+ if(f.c.n==='HARIMAU' && HARIMAU_IMG.complete){
+
+  let col=0;
+  let row=0;
+
+  if(f.atk===ATK.p){
+      col=0;
+      row=1;
+  }
+  else if(f.atk===ATK.k){
+      col=1;
+      row=1;
+  }
+  else if(f.atk===ATK.s){
+      col=2;
+      row=1;
+  }
+  else if(Math.abs(f.vxm)>0){
+      col=2+((f.t>>3)%2);
+      row=0;
+  }
+  else{
+      col=(f.t>>4)%2;
+      row=0;
+  }
+
+  c.save();
+
+  if(face<0){
+      c.translate(x,0);
+      c.scale(-1,1);
+      x=0;
+  }
+
+  c.drawImage(
+      HARIMAU_IMG,
+      col * HARIMAU_FW,
+      row * HARIMAU_FH,
+      HARIMAU_FW,
+      HARIMAU_FH,
+      Math.round(x - 28),
+      Math.round(y - 72),
+      56,
+      72
+  );
+
+  c.restore();
+  return;
+ }
+
  const p=f.c.p,t=f.t;
  const R=(px,py,w,h,col)=>{c.fillStyle=f.flash?'#fff':col;c.fillRect(Math.round(x+(face>0?px:-px-w)),Math.round(y+py),w,h)};
  if(f.ko){R(-14,-8,28,8,p.gi);R(-21,-9,8,8,p.sk);R(-22,-11,5,4,p.hr);R(14,-6,6,6,p.sk);return}
