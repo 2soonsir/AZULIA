@@ -37,6 +37,16 @@ p{margin:0;font-size:14px;max-width:34ch;line-height:1.5}
 .btn.mode small{display:block;margin-top:3px;font-size:11px;font-weight:400}
 .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
 button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+#splash{background:#000;z-index:20;cursor:pointer;overflow:hidden}
+.sl{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;opacity:0;transition:opacity .8s;pointer-events:none}
+.sl.on{opacity:1}
+#s1a{font-size:clamp(24px,8vw,44px);font-weight:700;letter-spacing:6px;color:#f4e9d0}
+.sm{font-size:clamp(12px,3.4vw,16px);letter-spacing:3px;color:#ffcf4a}
+#s2 h1{font-size:clamp(30px,10vw,60px);line-height:1.05;letter-spacing:2px;text-shadow:3px 3px 0 #c0172b,6px 6px 0 #000}
+#s2.on h1{animation:pop 1.3s ease-out}
+@keyframes pop{from{transform:scale(1.35);letter-spacing:14px}to{transform:scale(1);letter-spacing:2px}}
+.skip{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);font-size:11px;opacity:.45}
+@media(prefers-reduced-motion:reduce){.sl{transition:none}#s2.on h1{animation:none}}
 #intro{cursor:pointer;background:radial-gradient(#2b1a4a,#14101f)}
 #intro h1{font-size:clamp(28px,9vw,52px);line-height:1.05;letter-spacing:2px;text-shadow:3px 3px 0 #c0172b,6px 6px 0 #000}
 #ic{width:min(90vw,480px);image-rendering:pixelated}
@@ -55,7 +65,13 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 </div>
 <button id="pz" class="off" aria-label="Jeda">II</button>
 
-<div id="intro" class="ov" tabindex="0" role="button" aria-label="Tekan untuk mula">
+<div id="splash" class="ov" role="button" aria-label="Langkau pengenalan">
+  <div class="sl" id="s1"><div id="s1a"></div><div class="sm" id="s1b"></div></div>
+  <div class="sl" id="s2"><h1 id="s2a"></h1><div class="sm" id="s2b"></div></div>
+  <div class="skip">Sentuh untuk langkau</div>
+</div>
+
+<div id="intro" class="ov off" tabindex="0" role="button" aria-label="Tekan untuk mula">
   <h1>NADI<br>FIGHTERS</h1>
   <canvas id="ic" width="160" height="90"></canvas>
   <div class="blink">TEKAN UNTUK MULA</div>
@@ -93,6 +109,11 @@ let AC,mute=false,bgm,proj=[],pops=[],spTxt={l:0};
 /* BUNYI SENDIRI: letak data URI audio di sini, cth FILES.kena='data:audio/mpeg;base64,....'
    Kunci: lompat, ayun, kena, blok, api, ko, mula, muzik (muzik = latar, berulang) */
 const FILES={};
+
+/* ============ PENGENALAN (UBAH SUAI DI SINI) ============
+   Skrin pengenalan: nama studio, kemudian nama game, sebelum 'Tekan untuk mula'. */
+const SPLASH={studio:'NAMA STUDIO',tagline:'mempersembahkan',tajuk:'NADI FIGHTERS',sub:'Game pertarungan piksel'};
+/* ========================================================= */
 
 /* ============ CERITA (UBAH SUAI DI SINI) ============
    Setiap bab = satu pertarungan. Lawan dipilih automatik daripada 3 watak lain.
@@ -167,7 +188,7 @@ const CH=[
 {n:'ZAMBRI',sn:'Nafas Naga',fc:'#ff3b4a',s:'Seimbang',sp:1.6,dm:1,hp:100,p:{sk:'#c68642',gi:'#ececec',bt:'#c0172b',hr:'#111',bd:'#c0172b'}},
 {n:'RANDY',sn:'Kilat Hutan',fc:'#6bff9a',s:'Lincah, nipis',sp:2.3,dm:.75,hp:80,p:{sk:'#8d5524',gi:'#2fb36b',bt:'#14532d',hr:'#6b4520',bd:'#fff'}}];
 const ATK={s:{s:99,e:0,n:24,r:0,d:0,k:0},p:{s:4,e:8,n:15,r:24,d:6,k:2},k:{s:6,e:11,n:21,r:30,d:10,k:3.5}};
-let pick=2,pick2=1,scene='intro',P1,P2,parts=[],shake=0,timer=0,bannerT=0,fin=false,endT=0,bg;
+let pick=2,pick2=1,scene='splash',P1,P2,parts=[],shake=0,timer=0,bannerT=0,fin=false,endT=0,bg;
 let freeze=0,paused=false,wins=[0,0],round=1,oppIdx=0,roundMsg='';
 let mode='solo',selStage=1,storyIdx=0;
 const keys1={},keys2={}; /* keys1 = pemain 1 (juga sentuhan), keys2 = pemain 2 (multiplayer) */
@@ -262,7 +283,7 @@ function ai(f,o){
 /* ===== Aliran skrin ===== */
 const T=s=>s.replace(/\{lawan\}/g,CH[oppIdx].n).replace(/\{hero\}/g,CH[pick].n);
 const others=()=>[0,1,2,3].filter(i=>i!==pick);
-function hideAll(){['intro','menu','sel','end','ps'].forEach(k=>$(k).classList.add('off'))}
+function hideAll(){['splash','intro','menu','sel','end','ps'].forEach(k=>$(k).classList.add('off'))}
 function resetKeys(){for(const k in keys1)keys1[k]=0;for(const k in keys2)keys2[k]=0}
 function setBtns(list){const b=$('eb');b.innerHTML='';list.forEach(([t,fn,alt])=>{const x=document.createElement('button');x.className='btn'+(alt?' alt':'');x.textContent=t;x.onclick=fn;b.appendChild(x)})}
 function showPanel(h,p,btns){hideAll();$('pz').classList.add('off');$('eh').textContent=h;$('ep').textContent=p;setBtns(btns);$('end').classList.remove('off')}
@@ -407,6 +428,21 @@ function drawIntro(){
  drawF(ic,{...base,c:CH[0],atk:a<15?ATK.p:null,at:a},48,86,1);
  drawF(ic,{...base,c:CH[1],atk:b<15?ATK.p:null,at:b},112,86,-1);
 }
+let spT=[];
+function endSplash(){
+ spT.forEach(clearTimeout);spT=[];
+ if(scene!=='splash')return;
+ hideAll();$('intro').classList.remove('off');scene='intro';
+}
+function runSplash(){
+ $('s1a').textContent=SPLASH.studio;$('s1b').textContent=SPLASH.tagline;
+ $('s2a').innerHTML=SPLASH.tajuk.replace(/ /,'<br>');$('s2b').textContent=SPLASH.sub;
+ const on=(id,v)=>$(id).classList.toggle('on',v),at=(ms,fn)=>spT.push(setTimeout(fn,ms));
+ at(300,()=>on('s1',true));at(2400,()=>on('s1',false));
+ at(3300,()=>on('s2',true));at(6000,()=>on('s2',false));
+ at(6900,endSplash);
+}
+$('splash').onclick=endSplash;
 function enter(){if(scene!=='intro')return;snd('mula');goMenu()}
 $('intro').onclick=enter;
 let acc=0,last=0;
@@ -460,6 +496,7 @@ function mapKey(key){
 }
 const nk=e=>e.key.length===1?e.key.toLowerCase():e.key;
 addEventListener('keydown',e=>{
+ if(scene==='splash'){endSplash();e.preventDefault();return}
  if(scene==='intro'){if(e.key==='Enter'||e.key===' '){enter();e.preventDefault()}return}
  if(scene!=='fight')return;
  const key=nk(e);
@@ -467,6 +504,7 @@ addEventListener('keydown',e=>{
  const m=mapKey(key);if(m){m[0][m[1]]=1;e.preventDefault()}
 });
 addEventListener('keyup',e=>{const m=mapKey(nk(e));if(m&&HOLD[m[1]])m[0][m[1]]=0});
+runSplash();
 </script>
 </body>
 </html>
