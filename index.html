@@ -71,8 +71,18 @@ const FILES={};
   const HARIMAU_IMG = new Image();
 HARIMAU_IMG.src = "harimau.png";
 
-const HARIMAU_FW = 384;
-const HARIMAU_FH = 512;
+const ADLI_IMG = new Image();
+ADLI_IMG.src = "adli.png";
+
+const ZAMBRI_IMG = new Image();
+ZAMBRI_IMG.src = "zambri.png";
+
+const RANDY_IMG = new Image();
+RANDY_IMG.src = "randy.png";
+
+const FRAME_W = 384;
+const FRAME_H = 512;
+
 function au(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume()}
 addEventListener('pointerdown',au);addEventListener('keydown',au);
 function tone(a,b,d,ty,v){if(!AC||mute)return;const o=AC.createOscillator(),x=AC.createGain(),t=AC.currentTime;o.type=ty;o.frequency.setValueAtTime(a,t);o.frequency.exponentialRampToValueAtTime(b,t+d);x.gain.setValueAtTime(v,t);x.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(x);x.connect(AC.destination);o.start(t);o.stop(t+d)}
@@ -93,7 +103,14 @@ function mk(i,x,face,ai){const c=CH[i];return{c,x,y:GY,vy:0,face,hp:c.hp,mhp:c.h
 
 function drawF(c,f,x,y,face){
 
- if(f.c.n==='HARIMAU' && HARIMAU_IMG.complete){
+let SPRITE = null;
+
+if(f.c.n==='HARIMAU') SPRITE = HARIMAU_IMG;
+if(f.c.n==='ADLI') SPRITE = ADLI_IMG;
+if(f.c.n==='Zambri') SPRITE = ZAMBRI_IMG;
+if(f.c.n==='RANDY') SPRITE = RANDY_IMG;
+
+if(SPRITE && SPRITE.complete){
 
   let col=0;
   let row=0;
