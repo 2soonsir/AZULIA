@@ -262,7 +262,7 @@ function ai(f,o){
 /* ===== Aliran skrin ===== */
 const T=s=>s.replace(/\{lawan\}/g,CH[oppIdx].n).replace(/\{hero\}/g,CH[pick].n);
 const others=()=>[0,1,2,3].filter(i=>i!==pick);
-function hideAll(){['menu','sel','end','ps'].forEach(k=>$(k).classList.add('off'))}
+function hideAll(){['intro','menu','sel','end','ps'].forEach(k=>$(k).classList.add('off'))}
 function resetKeys(){for(const k in keys1)keys1[k]=0;for(const k in keys2)keys2[k]=0}
 function setBtns(list){const b=$('eb');b.innerHTML='';list.forEach(([t,fn,alt])=>{const x=document.createElement('button');x.className='btn'+(alt?' alt':'');x.textContent=t;x.onclick=fn;b.appendChild(x)})}
 function showPanel(h,p,btns){hideAll();$('pz').classList.add('off');$('eh').textContent=h;$('ep').textContent=p;setBtns(btns);$('end').classList.remove('off')}
