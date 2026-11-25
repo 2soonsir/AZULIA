@@ -185,7 +185,7 @@ function render(){if(scene==='intro')drawIntro();
  for(const q of proj){g.fillStyle=q.o.c.fc;g.globalAlpha=.4;g.fillRect(Math.round(q.x-q.vx*5)-4,Math.round(q.y)-3,8,6);g.globalAlpha=1;g.fillRect(Math.round(q.x)-6,Math.round(q.y)-6,12,12);g.fillStyle='#fff';g.fillRect(Math.round(q.x)-3,Math.round(q.y)-3,6,6)}
  [[P1,10,0],[P2,190,1]].forEach(([f,x,r])=>{const w=Math.round(120*f.en/100);g.fillStyle='#000';g.fillRect(x-2,19,124,6);g.fillStyle=f.en>=50?'#5ad7ff':'#2c5a7a';g.fillRect(r?x+120-w:x,20,w,4)});
  if(spTxt.l>0){g.font='bold 10px monospace';g.textAlign='center';g.fillStyle=spTxt.c;g.fillText(spTxt.t,Math.max(50,Math.min(270,spTxt.x)),60)}
- g.font='8px monospace';g.fillStyle='#fff';g.textAlign='left';g.fillText(P1.c.n,10,35);g.textAlign='right';g.fillText(P2.c.n,310,35);
+ g.font='12px Arial';g.fillStyle='#fff';g.textAlign='left';g.fillText(P1.c.n,10,35);g.textAlign='right';g.fillText(P2.c.n,310,35);
  g.textAlign='center';g.font='bold 12px monospace';g.fillText(Math.ceil(timer/60),160,16);
  if(bannerT>0){g.font='bold 22px monospace';g.fillStyle='#ffcf4a';g.fillText('BERTARUNG!',160,86)}
 }
