@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>NADI FIGHTERS</title>
+<title>AZULIA</title>
 <style>
 :root{color-scheme:dark;--bg:#14101f;--ink:#f4e9d0;--hot:#ffcf4a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:'Courier New',monospace;overflow:hidden;user-select:none;-webkit-user-select:none}
@@ -68,11 +68,11 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 <div id="splash" class="ov" role="button" aria-label="Langkau pengenalan">
   <div class="sl" id="s1"><div id="s1a"></div><div class="sm" id="s1b"></div></div>
   <div class="sl" id="s2"><h1 id="s2a"></h1><div class="sm" id="s2b"></div></div>
-  <div class="skip">Sentuh untuk skip</div>
+  <div class="skip">Tekan untuk skip</div>
 </div>
 
 <div id="intro" class="ov off" tabindex="0" role="button" aria-label="Tekan untuk mula">
-  <h1>NADI<br>FIGHTERS</h1>
+  <h1>AZULIA</h1>
   <canvas id="ic" width="160" height="90"></canvas>
   <div class="blink">TEKAN UNTUK MULA</div>
 </div>
@@ -80,7 +80,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 <div id="menu" class="ov off">
   <h1>PILIH MOD</h1>
   <button class="btn mode" data-m="solo">SOLO<small>Lawan komputer</small></button>
-  <button class="btn mode" data-m="mp">MULTIPLAYER<small>2 pemain, satu papan kekunci</small></button>
+  <button class="btn mode" data-m="mp">MULTIPLAYER<small>Lawan kawan anda sendiri</small></button>
   <button class="btn mode" data-m="story">CERITA<small>Kalahkan semua lawan, ikut jalan cerita</small></button>
   <button class="btn alt" id="mu">Bunyi: HIDUP</button>
 </div>
@@ -99,7 +99,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 
 <div id="ps" class="ov off">
   <h1>PAUSE</h1>
-  <div class="row"><button class="btn" id="pr">Sambung</button><button class="btn alt" id="pm">Menu utama</button></div>
+  <div class="row"><button class="btn" id="pr">Sambung</button><button class="btn alt" id="pm">🔙Menu utama</button></div>
 </div>
 
 <script>
@@ -112,7 +112,7 @@ const FILES={};
 
 /* ============ PENGENALAN (UBAH SUAI DI SINI) ============
    Skrin pengenalan: nama studio, kemudian nama game, sebelum 'Tekan untuk mula'. */
-const SPLASH={studio:'GAGAKZ STUDIO',tagline:'mempersembahkan',tajuk:'NADI FIGHTERS',sub:'Game pertarungan piksel'};
+const SPLASH={studio:'GAGAKZ STUDIO',tagline:'mempersembahkan',tajuk:'AZULIA',sub:'MALAY INDIE GAME'};
 /* ========================================================= */
 
 /* ============ CERITA (UBAH SUAI DI SINI) ============
@@ -121,13 +121,13 @@ const SPLASH={studio:'GAGAKZ STUDIO',tagline:'mempersembahkan',tajuk:'NADI FIGHT
    Tambah/buang objek dalam 'bab' untuk ubah bilangan bab. */
 const STORY={
  bab:[
-  {tajuk:'BAB 1 — Cabaran Pertama',
-   pra:'{hero} tiba di gelanggang Nadi. {lawan} sudah menunggu di tengah medan.',
+  {tajuk:'BAB 1 — SETERU',
+   pra:'Adli tiba di gelanggang keluarga Rahim,yang merupakan tempat beliau mempelajari seni pertahankan diri dengan seorang guru silat yang dihormati di kampung sentosa baru iaitu Tok Bahar. Harimau sudah menunggu di tengah medan.',
    selepas:'{lawan} tewas. Tetapi ini baru permulaan.'},
-  {tajuk:'BAB 2 — Bayang Senja',
-   pra:'Langit merah. {lawan} muncul dan menyekat jalan {hero}.',
+  {tajuk:'BAB 2 — Tingkatkan ilmu',
+   pra:'selepas tewas ditangan Harimau. Tok Bahar mula mem.',
    selepas:'{lawan} mengaku kalah. Gelanggang terakhir sudah dekat.'},
-  {tajuk:'BAB 3 — Pertarungan Akhir',
+  {tajuk:'BAB 3 — askar Rebellion',
    pra:'Hanya {lawan} yang tinggal. Siapa yang layak menjadi juara?',
    selepas:'{lawan} rebah. Semua mata tertumpu pada {hero}.'}
  ],
@@ -172,7 +172,7 @@ function loadSprite(name,src){
  i.onload=()=>{SPR[name]=cleanSprite(i);drawCards()};
  i.src=src;
 }
-loadSprite('HARIMAU','harimau.png');loadSprite('ADLI','adli.png');loadSprite('ZAMBRI','zambri.png');loadSprite('RANDY','randy.png');
+loadSprite('HARIMAU','harimau.png');loadSprite('ADLI','adli.png');loadSprite('ZAMBRI','zambri.png');loadSprite('RANDY','randy.png');loadSprite('TOK BAHAR','tokbahar.png');
 
 function au(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume()}
 addEventListener('pointerdown',au);addEventListener('keydown',au);
@@ -187,6 +187,8 @@ const CH=[
 {n:'ADLI',sn:'Sayap Ribut',fc:'#5ab0ff',s:'Laju, ringan',sp:2,dm:.85,hp:90,p:{sk:'#f1c9a0',gi:'#2f6fe0',bt:'#f4f4f4',hr:'#d9d9d9',bd:'#ffd23f'}},
 {n:'ZAMBRI',sn:'Nafas Naga',fc:'#ff3b4a',s:'Seimbang',sp:1.6,dm:1,hp:100,p:{sk:'#c68642',gi:'#ececec',bt:'#c0172b',hr:'#111',bd:'#c0172b'}},
 {n:'RANDY',sn:'Kilat Hutan',fc:'#6bff9a',s:'Lincah, nipis',sp:2.3,dm:.75,hp:80,p:{sk:'#8d5524',gi:'#2fb36b',bt:'#14532d',hr:'#6b4520',bd:'#fff'}}];
+{n:'TOK BAHAR',sn:'Tangan hujan',fc:'#6bff9a',s:'Lincah, nipis',sp:2.3,dm:.75,hp:80,p:{sk:'#8d5524',gi:'#2fb36b',bt:'#14532d',hr:'#6b4520',bd:'#fff'}}];
+  
 const ATK={s:{s:99,e:0,n:24,r:0,d:0,k:0},p:{s:4,e:8,n:15,r:24,d:6,k:2},k:{s:6,e:11,n:21,r:30,d:10,k:3.5}};
 let pick=2,pick2=1,scene='splash',P1,P2,parts=[],shake=0,timer=0,bannerT=0,fin=false,endT=0,bg;
 let freeze=0,paused=false,wins=[0,0],round=1,oppIdx=0,roundMsg='';
