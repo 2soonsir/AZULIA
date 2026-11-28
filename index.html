@@ -25,12 +25,12 @@ h1{margin:0;font-size:28px;color:var(--hot)}
 p{margin:0;font-size:14px;max-width:34ch;line-height:1.5}
 #ep{max-width:40ch}
 #eb{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
-#cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(100%,340px)}
+#cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:min(100%,360px)}
 .card{background:#231a3a;border:3px solid #3d2f63;border-radius:10px;padding:8px;color:var(--ink);font:inherit;cursor:pointer;touch-action:manipulation}
 .card.sel{border-color:var(--hot);background:#3a2b5c}
 .card.p1{border-color:#5ab0ff}
-.card canvas{width:84px;height:114px;image-rendering:pixelated}
-.nm{margin-top:4px;font-weight:700;font-size:14px}
+.card canvas{width:64px;height:64px;display:block;margin:0 auto;border-radius:6px}
+.nm{margin-top:4px;font-weight:700;font-size:11px}
 .nm2{margin-top:4px;font-size:11px;color:var(--hot)}
 .card small{display:block;font-size:11px;opacity:.8}
 .btn{font:700 18px 'Courier New',monospace;padding:12px 26px;background:var(--hot);color:#14101f;border:0;border-radius:8px;cursor:pointer;touch-action:manipulation}
@@ -55,6 +55,18 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .blink{font-size:18px;animation:bl 1s steps(2) infinite}
 @keyframes bl{50%{opacity:0}}
 @media(prefers-reduced-motion:reduce){.blink{animation:none}}
+#menu,#sel,#arena{background:radial-gradient(#2b1a4a,#14101f)}
+#pv{display:flex;align-items:stretch;gap:8px;width:min(100%,380px);justify-content:center}
+.pvb{flex:1;background:#231a3a;border:3px solid #3d2f63;border-radius:10px;padding:6px 4px;text-align:center;min-width:0}
+.pvb.act{border-color:var(--hot)}
+.pvb canvas{width:min(100%,120px);aspect-ratio:160/220;display:block;margin:0 auto}
+.pvb .pn{font-weight:700;font-size:14px}.pvb .ps{font-size:11px;color:var(--hot)}.pvb .pt{font-size:10px;opacity:.8}
+.vs{align-self:center;font-weight:700;color:#c0172b;font-size:20px;text-shadow:2px 2px 0 #000}
+#acards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:min(100%,360px)}
+.ac{border:3px solid #3d2f63;border-radius:10px;overflow:hidden;cursor:pointer;background:#231a3a;touch-action:manipulation}
+.ac.sel{border-color:var(--hot)}
+.ac img{display:block;width:100%;height:64px;object-fit:cover}
+.ac div{padding:4px;font-weight:700;font-size:11px}
 </style>
 </head>
 <body>
@@ -89,9 +101,20 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 
 <div id="sel" class="ov off">
   <h1 id="st">Pilih Pahlawan Anda</h1>
+  <div id="pv">
+    <div class="pvb" id="pv1"><canvas id="pc1" width="160" height="220"></canvas><div class="pn" id="pn1"></div><div class="ps" id="ps1"></div><div class="pt" id="pt1"></div></div>
+    <div class="vs">VS</div>
+    <div class="pvb" id="pv2"><canvas id="pc2" width="160" height="220"></canvas><div class="pn" id="pn2"></div><div class="ps" id="ps2"></div><div class="pt" id="pt2"></div></div>
+  </div>
   <div id="cards"></div>
-  <div class="row"><button class="btn" id="go">Lawan!</button><button class="btn alt" id="bk">Kembali</button></div>
+  <div class="row"><button class="btn" id="go">Seterusnya</button><button class="btn alt" id="rnd" style="display:none">Random Musuh</button><button class="btn alt" id="bk">Kembali</button></div>
   <p id="hint"></p>
+</div>
+
+<div id="arena" class="ov off">
+  <h1>PILIH ARENA</h1>
+  <div id="acards"></div>
+  <div class="row"><button class="btn" id="ago">Lawan!</button><button class="btn alt" id="arnd">Random Arena</button><button class="btn alt" id="abk">Kembali</button></div>
 </div>
 
 <div id="end" class="ov off">
@@ -119,7 +142,7 @@ const SPLASH={studio:'GAGAKZ STUDIO',tagline:'mempersembahkan',tajuk:'AZULIA',su
 
 /* LATAR: fail PNG dalam folder yang sama. Cerita guna kunci ini (lihat story.js) */
 const BG={gelanggangrahim:'gelanggangrahim.png',sawahpadi:'sawahpadi.png',pasarsegar:'pasarsegar.png'},BGI={};
-let curBg='gelanggangrahim',need=2;
+let curBg='gelanggangrahim',arenaPick='gelanggangrahim',need=2;
 for(const k in BG){const i=new Image();i.onload=()=>{BGI[k]=i};i.src=BG[k]}
 
 /* SPRITE: fail PNG mesti dalam folder yang sama dengan HTML ini */
@@ -141,6 +164,12 @@ function keyCell(px,SW,ox,oy){
   if(x>0)push(x-1,y);if(x<FRAME_W-1)push(x+1,y);if(y>0)push(x,y-1);if(y<FRAME_H-1)push(x,y+1);
  }
 }
+/* cari baris atas & bawah piksel watak dalam satu frame (supaya kaki sama paras) */
+function bounds(px,SW,ox,oy){
+ let top=-1,bot=-1;
+ for(let y=0;y<FRAME_H;y+=2){let hit=false;for(let x=0;x<FRAME_W;x+=2){if(px[((oy+y)*SW+ox+x)*4+3]>40){hit=true;break}}if(hit){if(top<0)top=y;bot=y}}
+ return top<0?null:[top,bot+2];
+}
 function cleanSprite(img){
  try{
   const cw=img.naturalWidth,ch=img.naturalHeight,c=document.createElement('canvas');
@@ -149,15 +178,18 @@ function cleanSprite(img){
   const d=x.getImageData(0,0,cw,ch),px=d.data;
   const cols=Math.floor(cw/FRAME_W),rows=Math.floor(ch/FRAME_H);
   for(let r=0;r<rows;r++)for(let q=0;q<cols;q++)keyCell(px,cw,q*FRAME_W,r*FRAME_H);
-  x.putImageData(d,0,0);return c;
+  x.putImageData(d,0,0);
+  let tp=1e9,bt=0;
+  for(let q=0;q<Math.min(2,cols);q++){const b=bounds(px,cw,q*FRAME_W,0);if(b){tp=Math.min(tp,b[0]);bt=Math.max(bt,b[1])}}
+  if(bt>tp){c.top=tp;c.foot=bt}
+  return c;
  }catch(e){return img}
 }
 function loadSprite(name,src){
  const i=new Image();
- i.onload=()=>{SPR[name]=cleanSprite(i);drawCards()};
+ i.onload=()=>{SPR[name]=cleanSprite(i);drawSel()};
  i.src=src;
 }
-loadSprite('HARIMAU','harimau.png');loadSprite('ADLI','adli.png');loadSprite('ZAMBRI','zambri.png');loadSprite('RANDY','randy.png');loadSprite('TOK BAHAR','tokbahar.png');loadSprite('ASKAR','askar.png');
 
 function au(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume()}
 addEventListener('pointerdown',au);addEventListener('keydown',au);
@@ -175,7 +207,11 @@ const CH=[
 {n:'RANDY',sn:'Kilat Hutan',fc:'#6bff9a',s:'Lincah, nipis',sp:2.3,dm:.75,hp:80,p:{sk:'#8d5524',gi:'#2fb36b',bt:'#14532d',hr:'#6b4520',bd:'#fff'}},
 {n:'TOK BAHAR',npc:1,sn:'Tangan Hujan',fc:'#9ad0ff',s:'Guru',sp:1.4,dm:1,hp:120,p:{sk:'#c9a070',gi:'#f0f0e0',bt:'#5a4a30',hr:'#e8e8e8',bd:'#8a6a3a'}},
 {n:'ASKAR',npc:1,sn:'Serbuan Rebel',fc:'#ff5a3a',s:'Askar Rebellion',sp:1.6,dm:1,hp:100,p:{sk:'#c68642',gi:'#5a1020',bt:'#222',hr:'#222',bd:'#c0172b'}}];
-const PLAY=CH.filter(c=>!c.npc);
+/* Fail gambar: <nama>.png = dalam pertarungan, <nama>1.png = skrin pilih watak (cth adli.png, adli1.png, tokbahar1.png).
+   ht = tinggi watak dalam pertarungan (sama untuk semua = sama tinggi). */
+const fname=c=>c.n.toLowerCase().replace(/ /g,''),POR={};
+CH.forEach(c=>{loadSprite(c.n,fname(c)+'.png');const i=new Image();i.onload=()=>{POR[c.n]=i;drawSel()};i.src=fname(c)+'1.png'});
+const ARENAS=[{k:'gelanggangrahim',n:'Gelanggang Rahim'},{k:'sawahpadi',n:'Sawah Padi'},{k:'pasarsegar',n:'Pasar Segar'}];
 
 const ATK={s:{s:99,e:0,n:24,r:0,d:0,k:0},p:{s:4,e:8,n:15,r:24,d:6,k:2},k:{s:6,e:11,n:21,r:30,d:10,k:3.5}};
 let pick=2,pick2=1,scene='splash',P1,P2,parts=[],shake=0,timer=0,bannerT=0,fin=false,endT=0;
@@ -194,15 +230,15 @@ function drawF(c,f,x,y,face,sc=1){
   else if(f.atk===ATK.s){col=2;row=1}
   else if(Math.abs(f.vxm)>0){col=2+((f.t>>3)%2)}
   else{col=(f.t>>4)%2}
-  const w=56*sc,h=72*sc;
+  const top=S.top??40,foot=S.foot??(FRAME_H-20),hh=(f.c.ht||62)*sc,k=hh/(foot-top),w=FRAME_W*k,h=FRAME_H*k;
   c.save();
   c.translate(Math.round(x),Math.round(y));
   if(face<0)c.scale(-1,1);
   if(f.ko)c.rotate(-Math.PI/2*0.9);
   if(f.flash>0)c.filter='brightness(2.5)';
-  c.drawImage(S,col*FRAME_W,row*FRAME_H,FRAME_W,FRAME_H,-w/2,-h+4*sc,w,h);
+  c.drawImage(S,col*FRAME_W,row*FRAME_H,FRAME_W,FRAME_H,-w/2,2*sc-foot*k,w,h);
   c.filter='none';
-  if(f.blk){c.fillStyle='rgba(90,215,255,.35)';c.fillRect(w*.22,-h*.85,5*sc,h*.75);c.fillStyle='rgba(255,255,255,.6)';c.fillRect(w*.22,-h*.85,1.5*sc,h*.75)}
+  if(f.blk){c.fillStyle='rgba(90,215,255,.35)';c.fillRect(hh*.3,-hh*.95,5*sc,hh*.85);c.fillStyle='rgba(255,255,255,.6)';c.fillRect(hh*.3,-hh*.95,1.5*sc,hh*.85)}
   c.restore();
   return;
  }
@@ -272,7 +308,7 @@ function ai(f,o){
 
 /* ===== Aliran skrin ===== */
 const T=s=>s.replace(/\{lawan\}/g,CH[oppIdx].n).replace(/\{hero\}/g,CH[pick].n);
-function hideAll(){['splash','intro','menu','sel','end','ps'].forEach(k=>$(k).classList.add('off'))}
+function hideAll(){['splash','intro','menu','sel','arena','end','ps'].forEach(k=>$(k).classList.add('off'))}
 function resetKeys(){for(const k in keys1)keys1[k]=0;for(const k in keys2)keys2[k]=0}
 function setBtns(list){const b=$('eb');b.innerHTML='';list.forEach(([t,fn,alt])=>{const x=document.createElement('button');x.className='btn'+(alt?' alt':'');x.textContent=t;x.onclick=fn;b.appendChild(x)})}
 function showPanel(h,p,btns){hideAll();$('pz').classList.add('off');$('eh').textContent=h;$('ep').textContent=p;setBtns(btns);$('end').classList.remove('off')}
@@ -285,21 +321,23 @@ function goMenu(){
  hideAll();$('pz').classList.add('off');$('menu').classList.remove('off');scene='menu';
 }
 function updSel(){
- $('st').textContent=mode==='mp'?(selStage===1?'Pemain 1: pilih pahlawan':'Pemain 2: pilih pahlawan'):'Pilih Pahlawan Anda';
- $('go').textContent=mode==='mp'&&selStage===1?'Seterusnya':'Lawan!';
+ const s2=selStage===2;
+ $('st').textContent=mode==='mp'?(s2?'Pemain 2: pilih pahlawan':'Pemain 1: pilih pahlawan'):(s2?'Pilih Musuh Anda':'Pilih Pahlawan Anda');
+ $('go').textContent=s2?'Pilih Arena':'Seterusnya';
+ $('rnd').style.display=(mode==='solo'&&s2)?'':'none';
  $('hint').innerHTML=mode==='mp'
   ?'P1: A D gerak, W lompat, S tahan, F tumbuk, G tendang, H spesial.<br>P2: ← → gerak, ↑ lompat, ↓ tahan, J tumbuk, K tendang, L spesial.'
   :'Papan kekunci: ← → gerak, ↑ lompat, J tumbuk, K tendang, L spesial, S/↓ tahan, P jeda.';
  sync();
 }
 function openSel(m){mode=m;selStage=1;hideAll();$('sel').classList.remove('off');scene='sel';updSel()}
+function openArena(){hideAll();$('arena').classList.remove('off');scene='arena';syncA()}
 
 /* Padanan baharu: lawan & latar dipilih sekali. Mod cerita: lawan/latar ikut story.js */
 function begin(){
  wins=[0,0];round=1;need=2;
- if(mode==='mp')oppIdx=pick2;
- else if(mode!=='story'){do oppIdx=Math.random()*4|0;while(oppIdx===pick)}
- const ks=Object.keys(BG);curBg=mode==='story'?storyBg():ks[Math.random()*ks.length|0];
+ if(mode!=='story')oppIdx=pick2;
+ curBg=mode==='story'?storyBg():arenaPick;
  if(bgm)bgm.pause();
  if(FILES.muzik&&!mute){bgm=new Audio(FILES.muzik);bgm.loop=true;bgm.volume=.5;bgm.play().catch(()=>{})}
  startRound();
@@ -365,9 +403,9 @@ function pips(){
  }
 }
 function render(){if(scene==='intro')drawIntro();
+ if(!P1){g.fillStyle='#000';g.fillRect(0,0,W,H);return} /* menu/intro: jangan papar arena */
  const im=BGI[curBg];
  if(im){g.imageSmoothingEnabled=true;g.drawImage(im,0,0,W,H);g.imageSmoothingEnabled=false}else{g.fillStyle='#2a1738';g.fillRect(0,0,W,H)}
- if(!P1)return;
  const s=shake>0?Math.round((Math.random()*2-1)*shake):0;
  g.save();g.translate(s,0);
  for(const f of[P1,P2]){g.fillStyle='rgba(0,0,0,.35)';g.fillRect(Math.round(f.x-10),GY,20,3);drawF(g,f,f.x,f.y,f.face)}
@@ -416,30 +454,48 @@ function frame(ts){acc+=Math.min(100,ts-last);last=ts;while(acc>=16.67){acc-=16.
 requestAnimationFrame(frame);
 
 const cards=$('cards');
+function drawPort(k,c,cw,ch,cover,sc){
+ k.clearRect(0,0,cw,ch);const im=POR[c.n];
+ if(im){const s=cover?Math.max(cw/im.width,ch/im.height):Math.min(cw/im.width,ch/im.height),w=im.width*s,h=im.height*s;k.drawImage(im,(cw-w)/2,cover?0:ch-h,w,h)}
+ else drawF(k,{c,t:0,hs:0,flash:0,atk:null,at:0,g:true,ko:false,vxm:0,blk:false},cw/2,ch-4*sc,1,sc);
+}
+function drawSel(){
+ if(!cards.children.length)return;
+ [...cards.children].forEach((b,i)=>drawPort(b.querySelector('canvas').getContext('2d'),CH[i],64,64,true,.9));
+ drawPort($('pc1').getContext('2d'),CH[pick],160,220,false,3);
+ const k=$('pc2').getContext('2d');
+ if(selStage===2)drawPort(k,CH[pick2],160,220,false,3);
+ else{k.clearRect(0,0,160,220);k.fillStyle='#5b4a8a';k.font='bold 90px monospace';k.textAlign='center';k.fillText('?',80,140)}
+}
 function sync(){
- const cur=(mode==='mp'&&selStage===2)?pick2:pick;
- [...cards.children].forEach((b,i)=>{b.classList.toggle('sel',i===cur);b.classList.toggle('p1',mode==='mp'&&selStage===2&&i===pick&&i!==cur)});
+ const cur=selStage===2?pick2:pick;
+ [...cards.children].forEach((b,i)=>{b.classList.toggle('sel',i===cur);b.classList.toggle('p1',selStage===2&&i===pick&&i!==cur)});
+ $('pv1').classList.toggle('act',selStage===1);$('pv2').classList.toggle('act',selStage===2);
+ const a=CH[pick],b=selStage===2?CH[pick2]:null;
+ $('pn1').textContent=a.n;$('ps1').textContent=a.sn;$('pt1').textContent=a.s;
+ $('pn2').textContent=b?b.n:'???';$('ps2').textContent=b?b.sn:'';$('pt2').textContent=b?b.s:'';
+ drawSel();
 }
-function drawCards(){
- [...cards.children].forEach((b,i)=>{
-  const k=b.querySelector('canvas').getContext('2d');
-  k.clearRect(0,0,56,76);
-  drawF(k,{c:CH[i],t:0,hs:0,flash:0,atk:null,at:0,g:true,ko:false,vxm:0,blk:false},28,72,1);
- });
-}
-PLAY.forEach((c,i)=>{
+CH.forEach((c,i)=>{
  const b=document.createElement('div');b.className='card';b.tabIndex=0;
- b.innerHTML='<canvas width="56" height="76"></canvas><div class="nm">'+c.n+'</div><div class="nm2">'+c.sn+'</div><small>'+c.s+'</small>';
- b.onclick=()=>{if(mode==='mp'&&selStage===2)pick2=i;else pick=i;sync()};cards.appendChild(b);
+ b.innerHTML='<canvas width="64" height="64"></canvas><div class="nm">'+c.n+'</div>';
+ b.onclick=()=>{if(selStage===2)pick2=i;else pick=i;sync()};cards.appendChild(b);
 });
-sync();drawCards();
+function syncA(){[...$('acards').children].forEach((b,i)=>b.classList.toggle('sel',ARENAS[i].k===arenaPick))}
+ARENAS.forEach(a=>{
+ const b=document.createElement('div');b.className='ac';
+ b.innerHTML='<img src="'+BG[a.k]+'" alt="" onerror="this.style.visibility=\'hidden\'"><div>'+a.n+'</div>';
+ b.onclick=()=>{arenaPick=a.k;syncA()};$('acards').appendChild(b);
+});
+syncA();sync();
 
 document.querySelectorAll('#menu .mode').forEach(b=>b.onclick=()=>b.dataset.m==='story'?startStory():openSel(b.dataset.m));
-$('go').onclick=()=>{
- if(mode==='mp'&&selStage===1){selStage=2;updSel();return}
- begin();
-};
-$('bk').onclick=()=>{if(mode==='mp'&&selStage===2){selStage=1;updSel()}else goMenu()};
+$('go').onclick=()=>{if(selStage===1){selStage=2;updSel();return}openArena()};
+$('bk').onclick=()=>{if(selStage===2){selStage=1;updSel()}else goMenu()};
+$('rnd').onclick=()=>{let e;do e=Math.random()*CH.length|0;while(e===pick);pick2=e;sync();openArena()};
+$('ago').onclick=begin;
+$('arnd').onclick=()=>{arenaPick=ARENAS[Math.random()*ARENAS.length|0].k;syncA();begin()};
+$('abk').onclick=()=>{selStage=2;hideAll();$('sel').classList.remove('off');scene='sel';updSel()};
 $('pz').onclick=togglePause;
 $('pr').onclick=()=>setPause(false);
 $('pm').onclick=goMenu;
