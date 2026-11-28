@@ -67,6 +67,17 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .ac.sel{border-color:var(--hot)}
 .ac img{display:block;width:100%;height:64px;object-fit:cover}
 .ac div{padding:4px;font-weight:700;font-size:11px}
+#vsx{background:radial-gradient(#4a1a2a,#14101f);cursor:pointer;z-index:12}
+#vsr{display:flex;align-items:center;gap:6px;width:min(100%,420px);justify-content:center}
+.vsp{flex:1;min-width:0}
+.vsp canvas{width:min(100%,150px);aspect-ratio:160/220;display:block;margin:0 auto}
+.vsp .pn{font-weight:700;font-size:16px;color:var(--hot);margin-top:4px}
+#vl{animation:inL .45s ease-out}#vr{animation:inR .45s ease-out}
+.vsbig{font-size:44px;font-weight:700;color:#ffcf4a;text-shadow:3px 3px 0 #c0172b,6px 6px 0 #000;animation:vsp .9s ease-out both}
+@keyframes inL{from{transform:translateX(-130%)}to{transform:none}}
+@keyframes inR{from{transform:translateX(130%)}to{transform:none}}
+@keyframes vsp{0%,55%{transform:scale(0);opacity:0}80%{transform:scale(1.4)}100%{transform:scale(1);opacity:1}}
+@media(prefers-reduced-motion:reduce){#vl,#vr,.vsbig{animation:none}}
 </style>
 </head>
 <body>
@@ -125,6 +136,15 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 <div id="ps" class="ov off">
   <h1>PAUSE</h1>
   <div class="row"><button class="btn" id="pr">Sambung</button><button class="btn alt" id="pm">🔙Menu utama</button></div>
+</div>
+
+<div id="vsx" class="ov off" role="button" aria-label="Mula pertarungan">
+  <div id="vsr">
+    <div class="vsp" id="vl"><canvas id="vc1" width="160" height="220"></canvas><div class="pn" id="vn1"></div></div>
+    <div class="vsbig">VS</div>
+    <div class="vsp" id="vr"><canvas id="vc2" width="160" height="220"></canvas><div class="pn" id="vn2"></div></div>
+  </div>
+  <div class="skip">Tekan untuk mula</div>
 </div>
 
 <script src="story.js"></script>
@@ -219,7 +239,7 @@ let freeze=0,paused=false,wins=[0,0],round=1,oppIdx=0,roundMsg='';
 let mode='solo',selStage=1;
 const keys1={},keys2={}; /* keys1 = pemain 1 (juga sentuhan), keys2 = pemain 2 (multiplayer) */
 
-function mk(i,x,face,ai){const c=CH[i];return{c,x,y:GY,vy:0,face,hp:c.hp,mhp:c.hp,en:0,g:true,atk:null,at:0,done:false,hs:0,kb:0,t:0,ko:false,vxm:0,flash:0,blk:false,bs:false,ai:ai?{c:0,b:0,lv:1}:null}}
+function mk(i,x,face,ai){const c=CH[i];return{c,x,y:GY,vy:0,face,hp:c.hp,mhp:c.hp,en:0,g:true,atk:null,at:0,done:false,hs:0,kb:0,t:0,ko:false,vxm:0,flash:0,blk:false,bs:false,cb:0,cbT:0,sh:false,ai:ai?{c:0,b:0,lv:1}:null}}
 
 function drawF(c,f,x,y,face,sc=1){
  const S=SPR[f.c.n.toUpperCase()];
@@ -259,6 +279,8 @@ function drawF(c,f,x,y,face,sc=1){
 function hit(a,t,dmg,kb,stun,fz,big){
  const bl=t.blk&&!t.ko;
  if(mode==='story')dmg=storyHitMod(a,t,dmg);
+ if(!bl&&a.cbT>0)dmg=Math.max(1,Math.round(dmg*Math.max(.6,1-.08*a.cb))); /* kurang damage pada pukulan berantai */
+ if(!bl){a.cb=a.cbT>0?a.cb+1:1;a.cbT=45}
  if(bl){dmg=Math.max(1,Math.round(dmg*.2));stun=6;kb*=.5;fz=2}
  t.hp-=dmg;
  if(mode==='story')storyClamp(t);
@@ -274,7 +296,7 @@ function hit(a,t,dmg,kb,stun,fz,big){
 }
 
 function step(f,o,i){
- f.t++;f.vxm=0;f.blk=false;f.en=Math.min(100,f.en+.06);if(f.flash>0)f.flash--;
+ f.t++;if(f.cbT>0&&--f.cbT<=0)f.cb=0;f.vxm=0;f.blk=false;f.en=Math.min(100,f.en+.06);if(f.flash>0)f.flash--;
  if(f.ko){f.vy+=.5;f.y=Math.min(GY,f.y+f.vy);f.x+=f.kb;f.kb*=.9;return}
  if(f.hs>0){f.hs--;f.x+=f.kb;f.kb*=.85;if(f.bs&&i.b&&f.g)f.blk=true}
  else if(f.atk){
@@ -282,18 +304,35 @@ function step(f,o,i){
   if(!f.done&&!o.ko&&f.at>=A.s&&f.at<=A.e&&(o.x-f.x)*f.face>-4&&Math.abs(o.x-f.x)<A.r&&Math.abs(o.y-f.y)<26){
    f.done=true;hit(f,o,Math.round(A.d*f.c.dm),f.face*A.k,14,A.d>8?6:4,A.d>8);
   }
-  if(A===ATK.s&&f.at===10)proj.push({x:f.x+f.face*18,y:f.y-24,vx:f.face*3.4,o:f});if(f.at>A.n)f.atk=null;
+  if(A===ATK.s)spec(f,o);if(f.at>A.n)f.atk=null;
  }else if(i.b&&f.g){
   f.blk=true;f.bs=false;
  }else{
   const sp=f.c.sp*.9;
   if(i.l){f.x-=sp;f.vxm=-1}if(i.r){f.x+=sp;f.vxm=1}
   if(i.j&&f.g){f.vy=-8;f.g=false;snd('lompat')}
-  if(i.s&&f.en>=50){f.en-=50;f.atk=ATK.s;f.at=0;f.done=true;snd('api');showSp(f)}else if(i.p||i.k){f.atk=i.p?ATK.p:ATK.k;f.at=0;f.done=false;snd('ayun')}
+  if(i.s&&f.en>=50){f.en-=50;f.atk=ATK.s;f.at=0;f.done=true;f.sh=false;snd('api');showSp(f)}else if(i.p||i.k){f.atk=i.p?ATK.p:ATK.k;f.at=0;f.done=false;snd('ayun')}
  }
  f.vy+=.5;f.y+=f.vy;if(f.y>=GY){f.y=GY;f.vy=0;f.g=true}
  f.x=Math.max(14,Math.min(W-14,f.x));
  if(f.g&&!f.atk&&f.hs<=0)f.face=o.x>=f.x?1:-1;
+}
+
+/* ===== SPESIAL UNIK (f.at = bingkai sejak spesial bermula) ===== */
+const SD={HARIMAU:'Bola api besar',ADLI:'Bola ribut laju','ZAMBRI':'Dua nafas naga',RANDY:'Terjah kilat','TOK BAHAR':'Hujan 3 peluru',ASKAR:'Tembakan 3 das'};
+function spec(f,o){
+ const n=f.c.n,a=f.at,fc=f.face;
+ const P=d=>proj.push(Object.assign({x:f.x+fc*18,y:f.y-24,vx:fc*3.4,vy:0,r:6,d:14,kb:3,o:f},d));
+ if(n==='HARIMAU'){if(a===10)P({vx:fc*2.4,r:10,d:20,kb:5,y:f.y-22})}
+ else if(n==='ADLI'){if(a===10)P({vx:fc*5.5,d:12})}
+ else if(n==='ZAMBRI'){if(a===9||a===17)P({vx:fc*3.8,r:5,d:9})}
+ else if(n==='TOK BAHAR'){if(a===10)[-10,0,10].forEach((dx,i)=>proj.push({x:o.x+dx,y:f.y-90-i*22,vx:0,vy:3,r:9,d:7,kb:1,o:f}))}
+ else if(n==='ASKAR'){if(a===8||a===12||a===16)P({vx:fc*5,r:4,d:6,y:f.y-24+(a-12)*1.5})}
+ else if(n==='RANDY'){
+  if(a>=6&&a<=18){f.x+=fc*5;
+   if(!f.sh&&!o.ko&&Math.abs(o.x-f.x)<20&&Math.abs(o.y-f.y)<26){f.sh=true;hit(f,o,Math.round(16*f.c.dm),fc*5,20,7,true)}}
+ }
+ else if(a===10)P({});
 }
 
 function ai(f,o){
@@ -308,7 +347,7 @@ function ai(f,o){
 
 /* ===== Aliran skrin ===== */
 const T=s=>s.replace(/\{lawan\}/g,CH[oppIdx].n).replace(/\{hero\}/g,CH[pick].n);
-function hideAll(){['splash','intro','menu','sel','arena','end','ps'].forEach(k=>$(k).classList.add('off'))}
+function hideAll(){['splash','intro','menu','sel','arena','vsx','end','ps'].forEach(k=>$(k).classList.add('off'))}
 function resetKeys(){for(const k in keys1)keys1[k]=0;for(const k in keys2)keys2[k]=0}
 function setBtns(list){const b=$('eb');b.innerHTML='';list.forEach(([t,fn,alt])=>{const x=document.createElement('button');x.className='btn'+(alt?' alt':'');x.textContent=t;x.onclick=fn;b.appendChild(x)})}
 function showPanel(h,p,btns){hideAll();$('pz').classList.add('off');$('eh').textContent=h;$('ep').textContent=p;setBtns(btns);$('end').classList.remove('off')}
@@ -340,8 +379,20 @@ function begin(){
  curBg=mode==='story'?storyBg():arenaPick;
  if(bgm)bgm.pause();
  if(FILES.muzik&&!mute){bgm=new Audio(FILES.muzik);bgm.loop=true;bgm.volume=.5;bgm.play().catch(()=>{})}
- startRound();
+ showVS();
 }
+/* Layar VS sebelum padanan bermula (ketik / Enter untuk langkau) */
+let vsT=0;
+function showVS(){
+ hideAll();scene='vs';$('pz').classList.add('off');
+ drawPort($('vc1').getContext('2d'),CH[pick],160,220,false,3);
+ drawPort($('vc2').getContext('2d'),CH[oppIdx],160,220,false,3);
+ $('vn1').textContent=CH[pick].n;$('vn2').textContent=CH[oppIdx].n;
+ $('vsx').classList.remove('off');snd('mula');
+ clearTimeout(vsT);vsT=setTimeout(vsGo,2600);
+}
+function vsGo(){if(scene!=='vs')return;clearTimeout(vsT);startRound()}
+$('vsx').onclick=vsGo;
 function startRound(){
  P1=mk(pick,80,1,false);P2=mk(oppIdx,240,-1,mode!=='mp');
  if(P2.ai)P2.ai.lv=1;
@@ -380,7 +431,7 @@ function tick(){
  const e1=fin?{}:(mode==='story'?storyInput(keys1):keys1),e2=fin?{}:(mode==='mp'?keys2:ai(P2,P1));
  step(P1,P2,e1);step(P2,P1,e2);
  for(const k of[keys1,keys2])k.p=k.k=k.j=k.s=0;
- for(const q of proj){q.x+=q.vx;const t=q.o===P1?P2:P1;if(!t.ko&&Math.abs(q.x-t.x)<10&&Math.abs(q.y-(t.y-20))<22){q.dead=1;hit(q.o,t,Math.round(14*q.o.c.dm),Math.sign(q.vx)*3,18,6,true)}if(q.x<-12||q.x>W+12)q.dead=1}
+ for(const q of proj){q.x+=q.vx;q.y+=q.vy;const t=q.o===P1?P2:P1;if(!t.ko&&Math.abs(q.x-t.x)<q.r+4&&Math.abs(q.y-(t.y-20))<22){q.dead=1;hit(q.o,t,Math.round(q.d*q.o.c.dm),(q.vx?Math.sign(q.vx):(t.x>=q.o.x?1:-1))*q.kb,18,6,q.d>8)}if(q.x<-12||q.x>W+12||q.y>GY+8)q.dead=1}
  proj=proj.filter(q=>!q.dead);if(spTxt.l>0)spTxt.l--;
  const dx=P2.x-P1.x;
  if(Math.abs(dx)<14&&P1.g&&P2.g&&!P1.ko&&!P2.ko){const m=(14-Math.abs(dx))/2*Math.sign(dx||1);P1.x-=m;P2.x+=m}
@@ -415,12 +466,14 @@ function render(){if(scene==='intro')drawIntro();
  g.globalAlpha=1;
  g.restore();
  bar(10,120,P1.hp,P1.mhp,false);bar(190,120,P2.hp,P2.mhp,true);
- for(const q of proj){g.fillStyle=q.o.c.fc;g.globalAlpha=.4;g.fillRect(Math.round(q.x-q.vx*5)-4,Math.round(q.y)-3,8,6);g.globalAlpha=1;g.fillRect(Math.round(q.x)-6,Math.round(q.y)-6,12,12);g.fillStyle='#fff';g.fillRect(Math.round(q.x)-3,Math.round(q.y)-3,6,6)}
+ for(const q of proj){const r=q.r,X=Math.round(q.x),Y=Math.round(q.y);g.fillStyle=q.o.c.fc;g.globalAlpha=.4;g.fillRect(Math.round(q.x-q.vx*5)-r+2,Math.round(q.y-q.vy*5)-r+2,r*2-4,r*2-4);g.globalAlpha=1;g.fillRect(X-r,Y-r,r*2,r*2);g.fillStyle='#fff';g.fillRect(X-r/2,Y-r/2,r,r)}
  [[P1,10,0],[P2,190,1]].forEach(([f,x,r])=>{if(f===P1&&mode==='story'&&!storyCanSpecial())return;const w=Math.round(120*f.en/100);g.fillStyle='#000';g.fillRect(x-2,19,124,6);g.fillStyle=f.en>=50?'#5ad7ff':'#2c5a7a';g.fillRect(r?x+120-w:x,20,w,4)});
  if(spTxt.l>0){g.font='bold 10px monospace';g.textAlign='center';g.fillStyle=spTxt.c;g.fillText(spTxt.t,Math.max(50,Math.min(270,spTxt.x)),60)}
  g.font='12px Arial';g.fillStyle='#fff';g.textAlign='left';g.fillText((mode==='mp'?'P1 ':'')+P1.c.n,10,35);g.textAlign='right';g.fillText((mode==='mp'?'P2 ':'')+P2.c.n,310,35);
  g.textAlign='center';g.font='bold 12px monospace';g.fillText(Math.ceil(timer/60),160,16);
  pips();
+ for(const [f,x,al] of[[P1,10,'left'],[P2,310,'right']])if(f.cb>=2&&f.cbT>0){g.textAlign=al;g.font='bold '+Math.min(22,10+f.cb*2)+'px monospace';g.fillStyle='#000';g.fillText(f.cb+' HIT!',x+1,61);g.fillStyle=f.cb>=4?'#ff7a1a':'#ffcf4a';g.fillText(f.cb+' HIT!',x,60)}
+ g.textAlign='center';
  if(mode==='story')storyDraw(g);
  if(bannerT>0){g.font='bold 22px monospace';g.fillStyle='#ffcf4a';g.fillText(bannerT>55?'PUSINGAN '+round:'BERTARUNG!',160,86)}
  else if(fin&&roundMsg){g.font='bold 22px monospace';g.fillStyle='#ffcf4a';g.fillText(roundMsg,160,86)}
@@ -472,8 +525,8 @@ function sync(){
  [...cards.children].forEach((b,i)=>{b.classList.toggle('sel',i===cur);b.classList.toggle('p1',selStage===2&&i===pick&&i!==cur)});
  $('pv1').classList.toggle('act',selStage===1);$('pv2').classList.toggle('act',selStage===2);
  const a=CH[pick],b=selStage===2?CH[pick2]:null;
- $('pn1').textContent=a.n;$('ps1').textContent=a.sn;$('pt1').textContent=a.s;
- $('pn2').textContent=b?b.n:'???';$('ps2').textContent=b?b.sn:'';$('pt2').textContent=b?b.s:'';
+ $('pn1').textContent=a.n;$('ps1').textContent=a.sn;$('pt1').textContent=a.s+' · '+SD[a.n];
+ $('pn2').textContent=b?b.n:'???';$('ps2').textContent=b?b.sn:'';$('pt2').textContent=b?b.s+' · '+SD[b.n]:'';
  drawSel();
 }
 CH.forEach((c,i)=>{
@@ -519,6 +572,7 @@ const nk=e=>e.key.length===1?e.key.toLowerCase():e.key;
 addEventListener('keydown',e=>{
  if(scene==='splash'){endSplash();e.preventDefault();return}
  if(scene==='intro'){if(e.key==='Enter'||e.key===' '){enter();e.preventDefault()}return}
+ if(scene==='vs'){vsGo();e.preventDefault();return}
  if(scene!=='fight')return;
  const key=nk(e);
  if(key==='p'||key==='Escape'){togglePause();e.preventDefault();return}
