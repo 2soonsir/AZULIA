@@ -382,12 +382,15 @@ function begin(){
  showVS();
 }
 /* Layar VS sebelum padanan bermula (ketik / Enter untuk langkau) */
+/* Arah potret 1.png: anggapan potret asal menghadap KANAN. Jika potret anda menghadap kiri, tukar l:true, r:false */
+const VS_FLIP={l:false,r:true};
 let vsT=0;
 function showVS(){
  hideAll();scene='vs';$('pz').classList.add('off');
  drawPort($('vc1').getContext('2d'),CH[pick],160,220,false,3);
  drawPort($('vc2').getContext('2d'),CH[oppIdx],160,220,false,3);
  $('vn1').textContent=CH[pick].n;$('vn2').textContent=CH[oppIdx].n;
+ $('vc1').style.transform=VS_FLIP.l?'scaleX(-1)':'';$('vc2').style.transform=VS_FLIP.r?'scaleX(-1)':'';
  $('vsx').classList.remove('off');snd('mula');
  clearTimeout(vsT);vsT=setTimeout(vsGo,2600);
 }
