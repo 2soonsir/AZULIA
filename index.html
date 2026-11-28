@@ -78,6 +78,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 @keyframes inR{from{transform:translateX(130%)}to{transform:none}}
 @keyframes vsp{0%,55%{transform:scale(0);opacity:0}80%{transform:scale(1.4)}100%{transform:scale(1);opacity:1}}
 @media(prefers-reduced-motion:reduce){#vl,#vr,.vsbig{animation:none}}
+#menu{gap:8px}#menu .btn{padding:9px 22px;font-size:16px}
 </style>
 </head>
 <body>
@@ -107,6 +108,9 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
   <button class="btn mode" data-m="solo">SOLO<small>Lawan komputer</small></button>
   <button class="btn mode" data-m="mp">MULTIPLAYER<small>Lawan kawan anda sendiri</small></button>
   <button class="btn mode" data-m="story">CERITA<small>Kalahkan semua lawan, ikut jalan cerita</small></button>
+  <button class="btn mode" data-m="arcade">ARCADE<small>Lawan semua watak, tewaskan bos</small></button>
+  <button class="btn mode" data-m="train">LATIHAN<small>Cuba spesial dan combo tanpa tekanan</small></button>
+  <button class="btn alt" id="df">Kesukaran: BIASA</button>
   <button class="btn alt" id="mu">Bunyi: HIDUP</button>
 </div>
 
@@ -135,7 +139,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 
 <div id="ps" class="ov off">
   <h1>PAUSE</h1>
-  <div class="row"><button class="btn" id="pr">Sambung</button><button class="btn alt" id="pm">🔙Menu utama</button></div>
+  <div class="row"><button class="btn" id="pr">Sambung</button><button class="btn alt" id="pd" style="display:none">Sasaran: PEGUN</button><button class="btn alt" id="pm">🔙Menu utama</button></div>
 </div>
 
 <div id="vsx" class="ov off" role="button" aria-label="Mula pertarungan">
@@ -235,8 +239,11 @@ const ARENAS=[{k:'gelanggangrahim',n:'Gelanggang Rahim'},{k:'sawahpadi',n:'Sawah
 
 const ATK={s:{s:99,e:0,n:24,r:0,d:0,k:0},p:{s:4,e:8,n:15,r:24,d:6,k:2},k:{s:6,e:11,n:21,r:30,d:10,k:3.5}};
 let pick=2,pick2=1,scene='splash',P1,P2,parts=[],shake=0,timer=0,bannerT=0,fin=false,endT=0;
+let slow=0,zm=1,zx=160; /* slow-mo & zum K.O. */
 let freeze=0,paused=false,wins=[0,0],round=1,oppIdx=0,roundMsg='';
 let mode='solo',selStage=1;
+const DIFFS=[['MUDAH',.6],['BIASA',1],['SUSAH',1.6]];let di=1;
+const TD=['PEGUN','MENAHAN','AI'];let tdum=0; /* sasaran latihan */
 const keys1={},keys2={}; /* keys1 = pemain 1 (juga sentuhan), keys2 = pemain 2 (multiplayer) */
 
 function mk(i,x,face,ai){const c=CH[i];return{c,x,y:GY,vy:0,face,hp:c.hp,mhp:c.hp,en:0,g:true,atk:null,at:0,done:false,hs:0,kb:0,t:0,ko:false,vxm:0,flash:0,blk:false,bs:false,cb:0,cbT:0,sh:false,ai:ai?{c:0,b:0,lv:1}:null}}
@@ -284,6 +291,7 @@ function hit(a,t,dmg,kb,stun,fz,big){
  if(bl){dmg=Math.max(1,Math.round(dmg*.2));stun=6;kb*=.5;fz=2}
  t.hp-=dmg;
  if(mode==='story')storyClamp(t);
+ if(mode==='train')t.hp=t.mhp; /* latihan: HP tak habis */
  a.en=Math.min(100,a.en+(bl?4:12));t.en=Math.min(100,t.en+(bl?2:8));
  t.hs=stun;t.kb=kb;t.bs=bl;t.atk=null;t.flash=bl?0:6;
  shake=bl?1:(big?5:3);freeze=Math.max(freeze,fz);
@@ -292,7 +300,7 @@ function hit(a,t,dmg,kb,stun,fz,big){
  for(let q=0;q<n;q++){const an=Math.random()*6.28;parts.push({x:(a.x+t.x)/2,y:t.y-22,vx:Math.cos(an)*2,vy:Math.sin(an)*2-1,l:14,c:bl?'#5ad7ff':null})}
  pops.push({x:t.x,y:t.y-46,l:34,t:bl?'BLOK':String(dmg),c:bl?'#5ad7ff':'#fff'});
  if(t===P1&&!bl&&navigator.vibrate)navigator.vibrate(25);
- if(t.hp<=0){t.hp=0;t.ko=true;t.vy=-4;t.kb=Math.sign(kb||a.face)*3;snd('ko');freeze=Math.max(freeze,14)}
+ if(t.hp<=0){t.hp=0;t.ko=true;slow=70;zx=t.x;t.vy=-4;t.kb=Math.sign(kb||a.face)*3;snd('ko');freeze=Math.max(freeze,14)}
 }
 
 function step(f,o,i){
@@ -351,19 +359,19 @@ function hideAll(){['splash','intro','menu','sel','arena','vsx','end','ps'].forE
 function resetKeys(){for(const k in keys1)keys1[k]=0;for(const k in keys2)keys2[k]=0}
 function setBtns(list){const b=$('eb');b.innerHTML='';list.forEach(([t,fn,alt])=>{const x=document.createElement('button');x.className='btn'+(alt?' alt':'');x.textContent=t;x.onclick=fn;b.appendChild(x)})}
 function showPanel(h,p,btns){hideAll();$('pz').classList.add('off');$('eh').textContent=h;$('ep').textContent=p;setBtns(btns);$('end').classList.remove('off')}
-function setPause(v){paused=v;$('ps').classList.toggle('off',!v)}
+function setPause(v){paused=v;$('ps').classList.toggle('off',!v);$('pd').style.display=mode==='train'?'':'none'}
 function togglePause(){if(scene==='fight'&&P1)setPause(!paused)}
 
 function goMenu(){
  if(bgm)bgm.pause();
- P1=P2=null;proj=[];parts=[];pops=[];resetKeys();setPause(false);
+ P1=P2=null;proj=[];parts=[];pops=[];slow=0;zm=1;resetKeys();setPause(false);
  hideAll();$('pz').classList.add('off');$('menu').classList.remove('off');scene='menu';
 }
 function updSel(){
  const s2=selStage===2;
- $('st').textContent=mode==='mp'?(s2?'Pemain 2: pilih pahlawan':'Pemain 1: pilih pahlawan'):(s2?'Pilih Musuh Anda':'Pilih Pahlawan Anda');
- $('go').textContent=s2?'Pilih Arena':'Seterusnya';
- $('rnd').style.display=(mode==='solo'&&s2)?'':'none';
+ $('st').textContent=mode==='mp'?(s2?'Pemain 2: pilih pahlawan':'Pemain 1: pilih pahlawan'):(s2?(mode==='train'?'Pilih Sasaran Latihan':'Pilih Musuh Anda'):'Pilih Pahlawan Anda');
+ $('go').textContent=s2?'Pilih Arena':(mode==='arcade'?'Mula Arcade':'Seterusnya');
+ $('rnd').style.display=((mode==='solo'||mode==='train')&&s2)?'':'none';
  $('hint').innerHTML=mode==='mp'
   ?'P1: A D gerak, W lompat, S tahan, F tumbuk, G tendang, H spesial.<br>P2: ← → gerak, ↑ lompat, ↓ tahan, J tumbuk, K tendang, L spesial.'
   :'Papan kekunci: ← → gerak, ↑ lompat, J tumbuk, K tendang, L spesial, S/↓ tahan, P jeda.';
@@ -376,7 +384,7 @@ function openArena(){hideAll();$('arena').classList.remove('off');scene='arena';
 function begin(){
  wins=[0,0];round=1;need=2;
  if(mode!=='story')oppIdx=pick2;
- curBg=mode==='story'?storyBg():arenaPick;
+ curBg=mode==='story'?storyBg():mode==='arcade'?ARENAS[Math.random()*ARENAS.length|0].k:arenaPick;
  if(bgm)bgm.pause();
  if(FILES.muzik&&!mute){bgm=new Audio(FILES.muzik);bgm.loop=true;bgm.volume=.5;bgm.play().catch(()=>{})}
  showVS();
@@ -398,10 +406,11 @@ function vsGo(){if(scene!=='vs')return;clearTimeout(vsT);startRound()}
 $('vsx').onclick=vsGo;
 function startRound(){
  P1=mk(pick,80,1,false);P2=mk(oppIdx,240,-1,mode!=='mp');
- if(P2.ai)P2.ai.lv=1;
+ if(P2.ai){P2.ai.lv=DIFFS[di][1];
+  if(mode==='arcade'){P2.ai.lv*=1+.08*arc.i;if(arc.i===arc.order.length-1){P2.ai.lv*=1.25;P2.hp=P2.mhp=Math.round(P2.mhp*1.3)}}}
  if(mode==='story')storyRoundSetup();
  document.querySelector('#pad [data-k=s]').classList.toggle('dis',mode==='story'&&!storyCanSpecial());
- parts=[];proj=[];pops=[];spTxt={l:0};freeze=0;resetKeys();setPause(false);
+ parts=[];proj=[];pops=[];spTxt={l:0};freeze=0;slow=0;zm=1;resetKeys();setPause(false);
  timer=3600;bannerT=110;fin=false;roundMsg='';
  snd('mula');scene='fight';
  hideAll();$('pz').classList.remove('off');
@@ -416,6 +425,7 @@ function showEnd(){
  if(bgm)bgm.pause();
  const w=wins[0]>wins[1]?1:wins[0]<wins[1]?-1:0,sk=' ('+wins[0]+'-'+wins[1]+')',on=CH[oppIdx].n;
  if(mode==='story'){storyEnd(w,sk,on);return}
+ if(mode==='arcade'){arcadeEnd(w,sk,on);return}
  if(mode==='mp'){
   showPanel(w>0?'PEMAIN 1 MENANG!':w<0?'PEMAIN 2 MENANG!':'SERI',
    CH[pick].n+' lawan '+on+sk+'.',
@@ -427,11 +437,34 @@ function showEnd(){
  }
 }
 
+/* ===== ARCADE: lawan semua watak lain secara berturut, watak terakhir = bos ===== */
+let arc={order:[],i:0};
+const ENDS={HARIMAU:'Harimau mempertahankan gelaran juara. Tiada siapa lagi berani mencabar cakar apinya.',
+ ADLI:'Adli membuktikan ilmu silat Tok Bahar tidak sia-sia. Namanya tersebar sehingga ke seberang.',
+ ZAMBRI:'Zambri berdiri sebagai juara. Naga di dadanya akhirnya tenang.',
+ RANDY:'Randy menghilang ke dalam hutan, meninggalkan gelaran juara di belakangnya.',
+ 'TOK BAHAR':'Tok Bahar tersenyum. Sang guru masih belum tertanding walaupun usia semakin lanjut.',
+ ASKAR:'Askar Rebellion mengibarkan benderanya. Pasar Segar kini miliknya.'};
+function arcadeStart(){
+ mode='arcade';arc.order=CH.map((c,i)=>i).filter(i=>i!==pick).sort(()=>Math.random()-.5);arc.i=0;arcadeIntro();
+}
+function arcadeIntro(){
+ oppIdx=pick2=arc.order[arc.i];P1=P2=null;scene='story';
+ const last=arc.i===arc.order.length-1;
+ showPanel(last?'BOS TERAKHIR':'LAWAN '+(arc.i+1)+' / '+arc.order.length,CH[pick].n+' lawan '+CH[oppIdx].n+(last?'. Bos lebih kuat dan lebih lasak!':'.'),[['Lawan!',begin],['Menu utama',goMenu,true]]);
+}
+function arcadeEnd(w,sk,on){
+ if(w>0){
+  if(arc.i<arc.order.length-1)showPanel('MENANG!','Kamu tewaskan '+on+sk+'.',[['Lawan seterusnya',()=>{arc.i++;arcadeIntro()}],['Menu utama',goMenu,true]]);
+  else showPanel('TAMAT ARCADE',ENDS[CH[pick].n]||'Kamu juara!',[['Menu utama',goMenu]]);
+ }else showPanel(w<0?'KALAH':'SERI',w<0?on+' terlalu kuat'+sk+'. Cuba lagi!':'Kedua-duanya sama kuat'+sk+'.',[['Cuba lagi',begin],['Menu utama',goMenu,true]]);
+}
+
 function tick(){
  if(!P1||paused)return;
  if(bannerT>0){bannerT--;return}
  if(freeze>0){freeze--;return} /* hit stop */
- const e1=fin?{}:(mode==='story'?storyInput(keys1):keys1),e2=fin?{}:(mode==='mp'?keys2:ai(P2,P1));
+ const e1=fin?{}:(mode==='story'?storyInput(keys1):keys1),e2=fin?{}:(mode==='mp'?keys2:(mode==='train'&&tdum<2?(tdum?{b:1}:{}):ai(P2,P1)));
  step(P1,P2,e1);step(P2,P1,e2);
  for(const k of[keys1,keys2])k.p=k.k=k.j=k.s=0;
  for(const q of proj){q.x+=q.vx;q.y+=q.vy;const t=q.o===P1?P2:P1;if(!t.ko&&Math.abs(q.x-t.x)<q.r+4&&Math.abs(q.y-(t.y-20))<22){q.dead=1;hit(q.o,t,Math.round(q.d*q.o.c.dm),(q.vx?Math.sign(q.vx):(t.x>=q.o.x?1:-1))*q.kb,18,6,q.d>8)}if(q.x<-12||q.x>W+12||q.y>GY+8)q.dead=1}
@@ -441,6 +474,7 @@ function tick(){
  for(const q of parts){q.x+=q.vx;q.y+=q.vy;q.vy+=.2;q.l--}parts=parts.filter(q=>q.l>0);
  for(const q of pops){q.y-=.6;q.l--}pops=pops.filter(q=>q.l>0);
  shake=Math.max(0,shake-.5);
+ if(mode==='train'){timer=3600;P1.en=100;P2.en=100} /* latihan: masa & tenaga tanpa had */
  if(!fin){timer--;if(P1.ko||P2.ko||timer<=0){fin=true;endT=120;roundMsg=(P1.ko||P2.ko)?'K.O.!':'MASA TAMAT'}}
  else if(--endT===0)endRound();
 }
@@ -458,6 +492,8 @@ function pips(){
 }
 function render(){if(scene==='intro')drawIntro();
  if(!P1){g.fillStyle='#000';g.fillRect(0,0,W,H);return} /* menu/intro: jangan papar arena */
+ zm+=((slow>0?1.55:1)-zm)*.1;const zo=zm>1.01;
+ if(zo){g.save();g.translate(zx,GY-24);g.scale(zm,zm);g.translate(-zx,-(GY-24))}
  const im=BGI[curBg];
  if(im){g.imageSmoothingEnabled=true;g.drawImage(im,0,0,W,H);g.imageSmoothingEnabled=false}else{g.fillStyle='#2a1738';g.fillRect(0,0,W,H)}
  const s=shake>0?Math.round((Math.random()*2-1)*shake):0;
@@ -468,12 +504,13 @@ function render(){if(scene==='intro')drawIntro();
  for(const q of pops){g.globalAlpha=Math.min(1,q.l/12);g.fillStyle='#000';g.fillText(q.t,Math.round(q.x)+1,Math.round(q.y)+1);g.fillStyle=q.c;g.fillText(q.t,Math.round(q.x),Math.round(q.y))}
  g.globalAlpha=1;
  g.restore();
+ if(zo)g.restore();
  bar(10,120,P1.hp,P1.mhp,false);bar(190,120,P2.hp,P2.mhp,true);
  for(const q of proj){const r=q.r,X=Math.round(q.x),Y=Math.round(q.y);g.fillStyle=q.o.c.fc;g.globalAlpha=.4;g.fillRect(Math.round(q.x-q.vx*5)-r+2,Math.round(q.y-q.vy*5)-r+2,r*2-4,r*2-4);g.globalAlpha=1;g.fillRect(X-r,Y-r,r*2,r*2);g.fillStyle='#fff';g.fillRect(X-r/2,Y-r/2,r,r)}
  [[P1,10,0],[P2,190,1]].forEach(([f,x,r])=>{if(f===P1&&mode==='story'&&!storyCanSpecial())return;const w=Math.round(120*f.en/100);g.fillStyle='#000';g.fillRect(x-2,19,124,6);g.fillStyle=f.en>=50?'#5ad7ff':'#2c5a7a';g.fillRect(r?x+120-w:x,20,w,4)});
  if(spTxt.l>0){g.font='bold 10px monospace';g.textAlign='center';g.fillStyle=spTxt.c;g.fillText(spTxt.t,Math.max(50,Math.min(270,spTxt.x)),60)}
  g.font='12px Arial';g.fillStyle='#fff';g.textAlign='left';g.fillText((mode==='mp'?'P1 ':'')+P1.c.n,10,35);g.textAlign='right';g.fillText((mode==='mp'?'P2 ':'')+P2.c.n,310,35);
- g.textAlign='center';g.font='bold 12px monospace';g.fillText(Math.ceil(timer/60),160,16);
+ g.textAlign='center';g.font='bold 12px monospace';g.fillText(mode==='train'?'∞':Math.ceil(timer/60),160,16);
  pips();
  for(const [f,x,al] of[[P1,10,'left'],[P2,310,'right']])if(f.cb>=2&&f.cbT>0){g.textAlign=al;g.font='bold '+Math.min(22,10+f.cb*2)+'px monospace';g.fillStyle='#000';g.fillText(f.cb+' HIT!',x+1,61);g.fillStyle=f.cb>=4?'#ff7a1a':'#ffcf4a';g.fillText(f.cb+' HIT!',x,60)}
  g.textAlign='center';
@@ -506,7 +543,7 @@ $('splash').onclick=endSplash;
 function enter(){if(scene!=='intro')return;snd('mula');goMenu()}
 $('intro').onclick=enter;
 let acc=0,last=0;
-function frame(ts){acc+=Math.min(100,ts-last);last=ts;while(acc>=16.67){acc-=16.67;tick()}render();requestAnimationFrame(frame)}
+function frame(ts){acc+=Math.min(100,ts-last);last=ts;while(acc>=16.67){acc-=16.67;if(slow>0){slow--;if(slow%3)continue}tick()}render();requestAnimationFrame(frame)}
 requestAnimationFrame(frame);
 
 const cards=$('cards');
@@ -546,7 +583,7 @@ ARENAS.forEach(a=>{
 syncA();sync();
 
 document.querySelectorAll('#menu .mode').forEach(b=>b.onclick=()=>b.dataset.m==='story'?startStory():openSel(b.dataset.m));
-$('go').onclick=()=>{if(selStage===1){selStage=2;updSel();return}openArena()};
+$('go').onclick=()=>{if(selStage===1){if(mode==='arcade'){arcadeStart();return}selStage=2;updSel();return}openArena()};
 $('bk').onclick=()=>{if(selStage===2){selStage=1;updSel()}else goMenu()};
 $('rnd').onclick=()=>{let e;do e=Math.random()*CH.length|0;while(e===pick);pick2=e;sync();openArena()};
 $('ago').onclick=begin;
@@ -555,6 +592,8 @@ $('abk').onclick=()=>{selStage=2;hideAll();$('sel').classList.remove('off');scen
 $('pz').onclick=togglePause;
 $('pr').onclick=()=>setPause(false);
 $('pm').onclick=goMenu;
+$('df').onclick=()=>{di=(di+1)%DIFFS.length;$('df').textContent='Kesukaran: '+DIFFS[di][0]};
+$('pd').onclick=()=>{tdum=(tdum+1)%TD.length;$('pd').textContent='Sasaran: '+TD[tdum]};
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&scene==='fight'&&P1)setPause(true)});
 
 const HOLD={l:1,r:1,b:1};
